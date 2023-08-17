@@ -1,0 +1,692 @@
+<div class="mx-auto max-w-screen-2xl p-4 md:p-6 2xl:p-10 space-y-5" x-data="
+{
+    sites: 0,
+    pages: 0,
+    posts: 0,
+    categories: 0,
+    media: 0,
+    latestPosts: [],
+    buildTime: '',
+    canExport: false,
+    showExport: false,
+    showImport: false,
+    status:'',
+    downloadLink:'',
+    downloadSize:0,
+    reason:'',
+    importOptions:{
+        users: {ok:false, count:0, size:0},
+        categories: {ok:false, count:0, size:0},
+        sites: {ok:false, count:0, size:0},
+        pages: {ok:false, count:0, size:0},
+        posts: {ok:false, count:0, size:0},
+        media: {ok:false, count:0, size:0},
+    },    
+    importKey:'',
+    importAuthor:'',
+    importFrom:'',
+    importTime:'',
+    importRisk:false,
+    init() {
+        fetch('./summary', { method: 'POST' }).then((resp) => {
+            resp.json().then((data) => {
+                if (!data) {
+                    return
+                }
+                this.sites = data.sites
+                this.pages = data.pages
+                this.posts = data.posts
+                this.categories = data.categories
+                this.media = data.media
+                this.latestPosts = data.latestPosts || []
+                this.buildTime = data.buildTime 
+                this.canExport = data.canExport
+            })
+        })
+    },
+    async clickExport() {
+        if (this.status != '') {
+            return
+        }   
+        let options = []
+        let exportOption = document.getElementById('exportOption')
+        let inputs = exportOption.getElementsByTagName('input')
+        for (let i = 0; i < inputs.length; i++) {
+            if (inputs[i].checked) {
+                options.push(inputs[i].name)
+            }
+        }
+        
+        if (options.length == 0) {
+            this.reason = 'No data selected'
+            return
+        }
+
+        this.status = 'pending'     
+        let resp = await fetch('./export/start', {method:'POST', body:JSON.stringify({options})})
+        if (resp.status != 200) {
+            this.status = 'error'
+            this.reason = await resp.text()
+            return
+        }
+        const {key} = await resp.json()
+        const pollStatus = async ()=>{
+            let r = await fetch(`./export/poll?key=${key}`, {method:'POST'})
+            if (r.status != 200) {
+                this.status = 'error'
+                this.reason = await r.text()
+                return
+            }
+
+            try {
+                let data = await r.json()
+                if (data.status == 'done' || data.status == 'error') {
+                    this.status = data.status
+                    this.reason = data.reason
+                    this.downloadLink = data.downloadLink
+                    this.downloadSize = data.downloadSize
+                    return
+                }
+                setTimeout(pollStatus, 500)
+            } catch (e) {
+                this.status = 'error'
+                this.reason = e.toString()                
+            }
+        }
+        setTimeout(pollStatus, 500)
+    },
+    resetExport() {
+        this.reason = ''
+        this.status = ''
+        this.downloadLink = ''
+        this.showExport = false
+    },
+
+    async clickImport() {
+        if (!this.importKey) {
+            this.reason = 'Invalid key'
+            this.status = 'error'
+            return
+        }
+
+        let options = []
+        let importOption = document.getElementById('importOption')
+        let inputs = importOption.getElementsByTagName('input')
+        for (let i = 0; i < inputs.length; i++) {
+            if (inputs[i].checked && this.importOptions[inputs[i].name].ok) {
+                options.push(inputs[i].name)
+            }
+        }
+
+        if (options.length == 0) {
+            this.reason = 'No data selected'
+            return
+        }
+
+        this.status = 'pending'
+
+        let resp = await fetch('./import/start', {method:'POST', body:JSON.stringify({key:this.importKey, options})})
+        if (resp.status != 200) {
+            this.status = 'error'
+            this.reason = await resp.text()
+            return
+        }
+
+        const pollStatus = async ()=>{
+            let r = await fetch(`./import/poll?key=${this.importKey}`, {method:'POST'})
+            if (r.status != 200) {
+                this.status = 'error'
+                this.reason = await r.text()
+                return
+            }
+
+            try {
+                let data = await r.json()
+                if (data.status == 'done' || data.status == 'error') {
+                    this.status = data.status
+                    this.reason = data.reason
+                    return
+                }
+                setTimeout(pollStatus, 500)
+            } catch (e) {
+                this.status = 'error'
+                this.reason = e.toString()                
+            }
+        }
+        setTimeout(pollStatus, 500)
+    },
+
+    async selectFile(event) {
+        const file = event.target.files[0]
+        if (!file) {
+            return
+        }
+
+        this.status = 'uploading'
+        let formData = new FormData()
+        formData.append('file', file)
+
+        let resp = await fetch('./import/upload', {method:'POST', body:formData})
+        if (resp.status != 200) {
+            this.status = 'error'
+            this.reason = await resp.text()
+            return
+        }
+        const result = await resp.json()
+        this.status = 'upload'
+        const {options, key} = result
+        options.forEach(opt=>{
+            this.importOptions[opt.name].ok = true
+            this.importOptions[opt.name].count = opt.count
+            this.importOptions[opt.name].size = opt.size
+        })
+        this.importAuthor = result.author || ''
+        this.importFrom = result.from || ''
+        this.importKey = key
+        this.importTime = result.exportTime || ''
+
+        if (this.importFrom.indexOf('http://') == 0) {
+            this.importFrom = this.importFrom.substring(7)
+        } else if (this.importFrom.indexOf('https://') == 0) {
+            this.importFrom = this.importFrom.substring(8)
+        }
+
+        if (this.importFrom != window.location.host) {
+            this.importRisk = true
+        }
+    },
+    resetImport() {
+        this.reason = ''
+        this.status = ''
+        this.showImport = false
+
+        this.importKey = ''
+        this.importAuthor = ''
+        this.importFrom = ''
+        this.importTime = ''
+        this.importRisk = false
+
+        this.importOptions = {
+            users: {ok:false, count:0, size:0},
+            categories: {ok:false, count:0, size:0},
+            sites: {ok:false, count:0, size:0},
+            pages: {ok:false, count:0, size:0},
+            posts: {ok:false, count:0, size:0},
+            media: {ok:false, count:0, size:0},
+        }
+    },
+}">
+    <div class="flex justify-between">
+        <h3 class="text-base font-semibold leading-6 text-gray-900">Summary</h3>
+        <div class="text-xs text-gray-50 hidden md:block">
+            <div>
+                <p>Build:<span x-text="buildTime"></span></p>
+            </div>
+        </div>
+    </div>
+    <dl class="grid grid-cols-1 gap-5 sm:grid-cols-4">
+        <div class="overflow-hidden rounded-lg bg-white px-4 py-5 shadow sm:p-6">
+            <dt class="truncate text-sm font-medium text-gray-500">Sites</dt>
+            <dd class="mt-1 text-3xl font-semibold tracking-tight text-gray-900">
+                <span x-text="sites"></span>
+            </dd>
+        </div>
+        <div class="overflow-hidden rounded-lg bg-white px-4 py-5 shadow sm:p-6">
+            <dt class="truncate text-sm font-medium text-gray-500">Pages</dt>
+            <dd class="mt-1 text-3xl font-semibold tracking-tight text-gray-900">
+                <span x-text="pages"></span>
+            </dd>
+        </div>
+        <div class="overflow-hidden rounded-lg bg-white px-4 py-5 shadow sm:p-6">
+            <dt class="truncate text-sm font-medium text-gray-500">Posts</dt>
+            <dd class="mt-1 text-3xl font-semibold tracking-tight text-gray-900">
+                <span x-text="posts"></span>
+            </dd>
+        </div>
+        <div class="overflow-hidden rounded-lg bg-white px-4 py-5 shadow sm:p-6">
+            <dt class="truncate text-sm font-medium text-gray-500">Media</dt>
+            <dd class="mt-1 text-3xl font-semibold tracking-tight text-gray-900">
+                <span x-text="media"></span>
+            </dd>
+        </div>
+    </dl>
+    <div x-show="canExport" class="flex justify-end space-x-5 items-center">
+        <button type="button" @click="showImport = !showImport"
+            class="inline-flex items-center gap-x-1.5 rounded-md bg-indigo-600 px-2.5 py-1.5 text-sm font-semibold text-white border hover:bg-indigo-500">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+                stroke="currentColor" class="w-6 h-6">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M15 11.25l-3-3m0 0l-3 3m3-3v7.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            Import
+        </button>
+        <button type="button" @click="showExport = !showExport"
+            class="inline-flex items-center gap-x-1.5 rounded-md bg-white px-2.5 py-1.5 text-sm font-semibold text-gray-900 border hover:bg-gray-50">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+                stroke="currentColor" class="w-6 h-6">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M9 12.75l3 3m0 0l3-3m-3 3v-7.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            Export
+        </button>
+    </div>
+    <template x-if="showImport">
+        <div class="relative z-20" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+            <div class="fixed inset-0 bg-gray-400 bg-opacity-30 transition-opacity"></div>
+            <div class="fixed inset-0 z-20 overflow-y-auto">
+                <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+                    <div
+                        class="relative transform overflow-hidden rounded-lg bg-white px-4 pb-4 pt-5 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg sm:p-6">
+                        <div class="sm:flex sm:items-start">
+                            <div
+                                class="mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
+                                <svg class="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+                                    stroke="currentColor" aria-hidden="true">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                                </svg>
+                            </div>
+                            <div class="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left">
+                                <h3 class="text-base font-semibold leading-6 text-gray-900" id="modal-title">
+                                    Import data
+                                </h3>
+                                <div class="mt-2">
+                                    <div class="text-sm text-gray-500">
+                                        <div>
+                                            Import from a zip file.
+                                        </div>
+                                        <div class="flex justify-end mt-4" x-show="status==''">
+                                            <div>
+                                                <input type="file" name="importFile" id="importFile" accept=".zip"
+                                                    @change="selectFile($event)" class="hidden" />
+                                                <label
+                                                    class="flex justify-center items-center px-6 py-6 border cursor-pointer border-gray-300 hover:border-indigo-600 hover:text-indigo-600 rounded-md"
+                                                    for="importFile">Select .zip </label>
+                                            </div>
+                                        </div>
+                                        <div class="flex justify-end mt-4" x-show="status=='uploading'">
+                                            <button type="button"
+                                                class="mt-3 inline-flex w-full justify-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-indigo-500 sm:mt-0 sm:w-auto"
+                                                disabled>
+                                                <svg x-show="status=='pending'"
+                                                    class="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                                                    xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                    <circle class="opacity-25" cx="12" cy="12" r="10"
+                                                        stroke="currentColor" stroke-width="4"></circle>
+                                                    <path class="opacity-75" fill="currentColor"
+                                                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                                                    </path>
+                                                </svg>
+                                                <span>Uploading ...</span>
+                                            </button>
+                                        </div>
+                                        <div class="mt-4" x-show="status=='upload'">
+                                            <div
+                                                class="flex-col items-center space-y-2 rounded shadow px-4 py-4 w-full">
+                                                <div x-show="importFrom != ''" class="text-gray-700">From:
+                                                    <span class="text-red-500" x-text="importFrom"></span>
+                                                    <div x-show="importAuthor != ''" class="text-gray-700">
+                                                        Author:
+                                                        <span class="text-red-500" x-text="importAuthor"></span>
+                                                    </div>
+                                                </div>
+                                                <div x-show="importTime != ''" class="text-gray-700">Export Time: <span
+                                                        class="text-gray-500"
+                                                        x-text="new Date(importTime).toLocaleString()"></span>
+                                                </div>
+                                                <div x-show="importRisk" class="flex gap-x-4 items-center">
+                                                    <span class="text-orange-600 h5 w-5">
+                                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none"
+                                                            viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"
+                                                            class="w-6 h-6">
+                                                            <path stroke-linecap="round" stroke-linejoin="round"
+                                                                d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                                                        </svg>
+                                                    </span>
+                                                    <span class="font-semibold text-orange-600"> RISK: This archive
+                                                        comes from other websites, do not use
+                                                        unconfirmed archive to cause risks
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <div class="mt-2 space-y-2" id="importOption">
+                                                <p class="font-medium">Select data for import</p>
+                                                <div x-show="importOptions.users.ok" class="relative flex items-start">
+                                                    <div class="flex h-6 items-center">
+                                                        <input id="users" aria-describedby="users-description"
+                                                            name="users" type="checkbox"
+                                                            class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600">
+                                                    </div>
+                                                    <div class="ml-3 text-sm leading-6">
+                                                        <label for="users" class="font-medium text-gray-900 space-x-2">
+                                                            <span>Users</span>
+                                                            <span class="text-gray-500"
+                                                                x-text="importOptions.users.count"></span>
+                                                            <span class="text-gray-500">records</span>
+                                                            <span class="text-gray-500"
+                                                                x-text="formatSizeHuman(importOptions.users.size)"></span>
+                                                        </label>
+                                                        <p id="users-description" class="text-red-500">Will overwrite
+                                                            your users.</p>
+                                                    </div>
+                                                </div>
+                                                <div x-show="importOptions.sites.ok" class="relative flex items-start">
+                                                    <div class="flex h-6 items-center">
+                                                        <input id="sites" aria-describedby="sites-description"
+                                                            name="sites" type="checkbox" checked
+                                                            class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600">
+                                                    </div>
+                                                    <div class="ml-3 text-sm leading-6">
+                                                        <label for="sites" class="font-medium text-gray-900 space-x-2">
+                                                            <span>Sites</span>
+                                                            <span class="text-gray-500"
+                                                                x-text="importOptions.sites.count"></span>
+                                                            <span class="text-gray-500">records</span>
+                                                            <span class="text-gray-500"
+                                                                x-text="formatSizeHuman(importOptions.sites.size)"></span></label>
+                                                    </div>
+                                                </div>
+                                                <div x-show="importOptions.categories.ok"
+                                                    class="relative flex items-start">
+                                                    <div class="flex h-6 items-center">
+                                                        <input id="categories" aria-describedby="categories-description"
+                                                            name="categories" type="checkbox" checked
+                                                            class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600">
+                                                    </div>
+                                                    <div class="ml-3 text-sm leading-6">
+                                                        <label for="categories"
+                                                            class="font-medium text-gray-900 space-x-2">
+                                                            <span>Categories</span>
+                                                            <span class="text-gray-500"
+                                                                x-text="importOptions.categories.count"></span>
+                                                            <span class="text-gray-500">records</span>
+                                                            <span class="text-gray-500"
+                                                                x-text="formatSizeHuman(importOptions.categories.size)"></span>
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                                <div x-show="importOptions.pages.ok" class="relative flex items-start">
+                                                    <div class="flex h-6 items-center">
+                                                        <input id="pages" aria-describedby="pages-description"
+                                                            name="pages" type="checkbox" checked
+                                                            class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600">
+                                                    </div>
+                                                    <div class="ml-3 text-sm leading-6">
+                                                        <label for="pages" class="font-medium text-gray-900 space-x-2">
+                                                            <span>Pages</span>
+                                                            <span class="text-gray-500"
+                                                                x-text="importOptions.pages.count"></span>
+                                                            <span class="text-gray-500">records</span>
+                                                            <span class="text-gray-500"
+                                                                x-text="formatSizeHuman(importOptions.pages.size)"></span></label>
+                                                    </div>
+                                                </div>
+                                                <div x-show="importOptions.posts.ok" class="relative flex items-start">
+                                                    <div class="flex h-6 items-center">
+                                                        <input id="posts" aria-describedby="posts-description"
+                                                            name="posts" type="checkbox" checked
+                                                            class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600">
+                                                    </div>
+                                                    <div class="ml-3 text-sm leading-6">
+                                                        <label for="posts" class="font-medium text-gray-900 space-x-2">
+                                                            <span>Posts</span>
+                                                            <span class="text-gray-500"
+                                                                x-text="importOptions.posts.count"></span>
+                                                            <span class="text-gray-500">records</span>
+                                                            <span class="text-gray-500"
+                                                                x-text="formatSizeHuman(importOptions.posts.size)"></span></label>
+                                                    </div>
+                                                </div>
+                                                <div x-show="importOptions.media.ok" class="relative flex items-start">
+                                                    <div class="flex h-6 items-center">
+                                                        <input id="media" aria-describedby="media-description"
+                                                            name="media" type="checkbox" checked
+                                                            class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600">
+                                                    </div>
+                                                    <div class="ml-3 text-sm leading-6">
+                                                        <label for="media" class="font-medium text-gray-900 space-x-2">
+                                                            <span>Media</span>
+                                                            <span class="text-gray-500"
+                                                                x-text="importOptions.media.count"></span>
+                                                            <span class="text-gray-500">records</span>
+                                                            <span class="text-gray-500"
+                                                                x-text="formatSizeHuman(importOptions.media.size)"></span></label>
+                                                        <p id="media-description" class="text-gray-500">All media files,
+                                                            image and files.</p>
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex justify-end  space-x-5 mt-5 sm:mt-4 items-center">
+                            <button x-show="status=='upload' || status=='pending' " type="button" @click="clickImport"
+                                class="mt-3 inline-flex w-full justify-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-indigo-500 sm:mt-0 sm:w-auto"
+                                :disabled="status == 'pending'">
+                                <svg x-show="status=='pending'" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                                    xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
+                                        stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor"
+                                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                                    </path>
+                                </svg>
+                                <span x-show="status=='upload'">Start Import</span>
+                                <span x-show="status=='pending'">Processing ...</span>
+                            </button>
+                            <button x-show="status=='' || status=='upload'" type="button" @click="resetImport"
+                                class="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto">
+                                Cancel
+                            </button>
+                            <span x-show="status=='done'" class="text-blue-700 text-xs">
+                                Import done
+                            </span>
+                            <span x-show="status=='error'" class="text-red-700 text-xs" x-text="reason">
+                            </span>
+                            <button x-show="status=='done' || status=='error'" type="button" @click="resetImport"
+                                class="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto">
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </template>
+    <template x-if="showExport">
+        <div class="relative z-20" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+            <div class="fixed inset-0 bg-gray-400 bg-opacity-30 transition-opacity"></div>
+            <div class="fixed inset-0 z-20 overflow-y-auto">
+                <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+                    <div
+                        class="relative transform overflow-hidden rounded-lg bg-white px-4 pb-4 pt-5 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg sm:p-6">
+                        <div class="sm:flex sm:items-start">
+                            <div
+                                class="mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
+                                <svg class="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+                                    stroke="currentColor" aria-hidden="true">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                                </svg>
+                            </div>
+                            <div class="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left">
+                                <h3 class="text-base font-semibold leading-6 text-gray-900" id="modal-title">
+                                    Export
+                                </h3>
+                                <div class="mt-2">
+                                    <div class="text-sm text-gray-500">
+                                        <div>
+                                            Export all data to a zip file. This may take a while.
+                                        </div>
+                                        <div class="mt-4" x-show="status==''">
+                                            <div class="space-y-2" id="exportOption">
+                                                <p class="font-medium">Select data for export </p>
+                                                <div class="relative flex items-start">
+                                                    <div class="flex h-6 items-center">
+                                                        <input id="users" aria-describedby="users-description"
+                                                            name="users" type="checkbox"
+                                                            class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600">
+                                                    </div>
+                                                    <div class="ml-3 text-sm leading-6">
+                                                        <label for="users"
+                                                            class="font-medium text-gray-900">Users</label>
+                                                        <p id="users-description" class="text-gray-500">All user,
+                                                            groups, group members.</p>
+                                                    </div>
+                                                </div>
+                                                <div class="relative flex items-start">
+                                                    <div class="flex h-6 items-center">
+                                                        <input id="sites" aria-describedby="sites-description"
+                                                            name="sites" type="checkbox" checked
+                                                            class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600">
+                                                    </div>
+                                                    <div class="ml-3 text-sm leading-6">
+                                                        <label for="sites"
+                                                            class="font-medium text-gray-900">Sites</label>
+                                                    </div>
+                                                </div>
+                                                <div class="relative flex items-start">
+                                                    <div class="flex h-6 items-center">
+                                                        <input id="categories" aria-describedby="categories-description"
+                                                            name="categories" type="checkbox" checked
+                                                            class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600">
+                                                    </div>
+                                                    <div class="ml-3 text-sm leading-6">
+                                                        <label for="categories"
+                                                            class="font-medium text-gray-900">Categories</label>
+                                                    </div>
+                                                </div>
+                                                <div class="relative flex items-start">
+                                                    <div class="flex h-6 items-center">
+                                                        <input id="pages" aria-describedby="pages-description"
+                                                            name="pages" type="checkbox" checked
+                                                            class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600">
+                                                    </div>
+                                                    <div class="ml-3 text-sm leading-6">
+                                                        <label for="pages"
+                                                            class="font-medium text-gray-900">Pages</label>
+                                                    </div>
+                                                </div>
+                                                <div class="relative flex items-start">
+                                                    <div class="flex h-6 items-center">
+                                                        <input id="posts" aria-describedby="posts-description"
+                                                            name="posts" type="checkbox" checked
+                                                            class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600">
+                                                    </div>
+                                                    <div class="ml-3 text-sm leading-6">
+                                                        <label for="posts"
+                                                            class="font-medium text-gray-900">Posts</label>
+                                                    </div>
+                                                </div>
+                                                <div class="relative flex items-start">
+                                                    <div class="flex h-6 items-center">
+                                                        <input id="media" aria-describedby="media-description"
+                                                            name="media" type="checkbox" checked
+                                                            class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600">
+                                                    </div>
+                                                    <div class="ml-3 text-sm leading-6">
+                                                        <label for="media"
+                                                            class="font-medium text-gray-900">Media</label>
+                                                        <p id="media-description" class="text-gray-500">All media files,
+                                                            image and files.</p>
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex justify-end  space-x-5 mt-5 sm:mt-4 items-center">
+                            <button x-show="status=='' ||(status!='done' && status != 'error')" type="button"
+                                @click="clickExport"
+                                class="mt-3 inline-flex w-full justify-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-indigo-500 sm:mt-0 sm:w-auto"
+                                :disabled="status!=''">
+                                <svg x-show="status=='pending'" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                                    xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
+                                        stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor"
+                                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                                    </path>
+                                </svg>
+                                <span x-show="status==''">Start Export</span>
+                                <span x-show="status=='pending'">Processing ...</span>
+                            </button>
+                            <button x-show="status==''" type="button" @click="resetExport"
+                                class="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto">
+                                Cancel
+                            </button>
+                            <span x-show="status=='done'" class="text-blue-700 text-xs flex items-center space-x-2">
+                                <a x-show="downloadLink != ''" :href="downloadLink" target="_blank">Download</a>
+                                <span class="text-gray-500" x-text="formatSizeHuman(downloadSize)"></span>
+                            </span>
+                            <span x-show="status=='error'" class="text-red-700 text-xs" x-text="reason">
+                            </span>
+                            <button x-show="status=='done' || status=='error'" type="button" @click="resetExport"
+                                class="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto">
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </template>
+    <h3 class="text-base font-semibold leading-6 text-gray-900">Recent posts</h3>
+    <ul role="list" class="divide-y divide-gray-100">
+        <template x-for="p in latestPosts">
+            <li class="flex flex-wrap items-center justify-between gap-x-6 gap-y-4 py-5 sm:flex-nowrap">
+                <div class="flex gap-x-6 ">
+                    <div class="flex -space-x-0.5">
+                        <template x-if="p.thumbnail">
+                            <img class="h-12 w-12 rounded bg-gray-50 ring-2 ring-white" :src="p.thumbnail"
+                                :alt="p.title">
+                        </template>
+                    </div>
+                    <div>
+                        <p class="text-sm font-semibold leading-6 text-gray-900">
+                            <span x-text="p.title"></span>
+                        </p>
+                        <div class="mt-1 flex items-center gap-x-2 text-xs leading-5 text-gray-500">
+                            <p>
+                                <span x-text="p.author"></span>
+                            </p>
+                            <svg viewBox="0 0 2 2" class="h-0.5 w-0.5 fill-current">
+                                <circle cx="1" cy="1" r="1" />
+                            </svg>
+                            <p x-text="new Date(p.updatedAt).toLocaleString()"></p>
+                            <template x-if="p.isDraft">
+                                <p
+                                    class="text-center rounded-md whitespace-nowrap px-2 py-1 text-xs font-medium ring-1 ring-inset text-yellow-800 bg-yellow-50 ring-yellow-600/20">
+                                    Draft</p>
+                            </template>
+                            <template x-if="p.published">
+                                <p
+                                    class="inline-flex items-center gap-x-1.5 rounded-md bg-green-100 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-200/20">
+                                    Published
+                                </p>
+                            </template>
+                            <template x-if="!p.published">
+                                <p
+                                    class="inline-flex items-center gap-x-1.5 rounded-md bg-yellow-100 px-2 py-1 text-xs font-medium text-yellow-700 ring-1 ring-inset ring-yellow-200/20">
+                                    Not published
+                                </p>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex text-sm text-gray-700">
+                    <template x-if="p.category">
+                        <p x-text="p.category.name"></p>
+                        <p x-text="p.category.pathName"></p>
+                    </template>
+                </div>
+            </li>
+        </template>
+    </ul>
+</div>

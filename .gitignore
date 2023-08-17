@@ -1,0 +1,5 @@
+*.db
+uploads/
+*.gz
+cmd/app
+cmd/uploads

@@ -1,0 +1,58 @@
+<template x-if="current.listMode == 'grid'">
+    <div x-data="{media:$store.media}"
+        class="overflow-x-auto bg-white shadow ring-1 ring-black ring-opacity-5 sm:rounded-lg">
+        <div class="mx-6 py-6 grid grid-cols-1 gap-x-8 gap-y-8 sm:grid-cols-2 sm:gap-y-10 lg:grid-cols-4">
+            <template x-for="(row,rowIdx) in queryresult.rows">
+                <div
+                    class="flex flex-col h-full justify-between px-4 py-4 group relative shadow rounded hover:shadow-md">
+                    <div @click="editObject($event, queryresult.rows[rowIdx])"
+                        class="flex justify-center items-center h-32 w-full overflow-hidden rounded-lg hover:opacity-75 bg-gray-100 cursor-pointer">
+                        <template x-if="row.rawData.content_type == 'image'">
+                            <img :src="row.rawData.thumbnail" :alt="row.rawData.alt" :title="row.rawData.title"
+                                class="object-cover object-center">
+                        </template>
+                        <template x-if="row.rawData.content_type != 'image'">
+                            <div x-text="row.rawData.name"></div>
+                        </template>
+                    </div>
+                    <div>
+                        <div class="mt-4 flex items-center justify-between text-base font-medium text-gray-900">
+                            <div class="flex-1 truncate text-gray-700">
+                                <a :href="row.rawData.public_url" target="_blank">
+                                    <span aria-hidden="true"></span>
+                                    <span x-text="row.rawData.name"></span>
+                                </a>
+                            </div>
+                            <div class="inline-flex items-center rounded-md bg-violet-100 px-2 py-1 text-xs font-medium text-violet-700"
+                                x-text="formatSizeHuman(row.rawData.size)"></div>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <span
+                                    class="inline-flex items-center rounded-md bg-green-100 px-2 py-1 text-xs font-medium text-green-700"
+                                    x-text="row.rawData.ext"></span>
+                                <span x-show="row.rawData.dimensions"
+                                    class="inline-flex items-center rounded-md bg-blue-100 px-2 py-1 text-xs font-medium text-blue-700"
+                                    x-text="row.rawData.dimensions"></span>
+
+                                <template x-if="row.rawData.published">
+                                    <span
+                                        class="inline-flex items-center gap-x-1.5 rounded-md bg-green-100 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-200/20">
+                                        Published
+                                    </span>
+                                </template>
+                                <template x-if="!row.rawData.published">
+                                    <span
+                                        class="inline-flex items-center gap-x-1.5 rounded-md bg-yellow-100 px-2 py-1 text-xs font-medium text-yellow-700 ring-1 ring-inset ring-yellow-200/20">
+                                        Not published
+                                    </span>
+                                </template>
+                            </div>
+                            <div x-admin-copyclip="row.rawData.public_url"></div>
+                        </div>
+                    </div>
+                </div>
+            </template>
+        </div>
+    </div>
+</template>

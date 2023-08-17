@@ -1,0 +1,129 @@
+<template x-if="current.listMode == 'grid'">
+    <!-- show result -->
+    <div class="overflow-x-auto bg-white shadow ring-1 ring-black ring-opacity-5 sm:rounded-lg" x-data="{
+        queryresult:$store.queryresult,
+        current:$store.current
+    }">
+        <table class="w-full border-separate border-spacing-0">
+            <thead class="bg-gray-50">
+                <tr class="relative">
+                    <!-- Column headers -->
+                    <template x-if="current.actions.length > 0">
+                        <th scope="col" class="sticky border-b border-gray-300 relative px-7 sm:w-12 sm:px-6">
+                            <input type="checkbox" x-on:click="queryresult.selectAll()" id="btn_selectAll"
+                                class="absolute left-4 top-1/2 -mt-2 h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600" />
+                        </th>
+                    </template>
+                    <th scope="col"
+                        class="sticky w-72 border-b border-gray-300 bg-opacity-75 py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 backdrop-blur backdrop-filter sm:pl-6 lg:pl-8">
+                        CONTENT
+                    </th>
+                    <th scope="col"
+                        class="sticky w-72 border-b border-gray-300 bg-opacity-75 py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 backdrop-blur backdrop-filter sm:pl-6 lg:pl-8">
+                        CATEGORY
+                    </th>
+                    <th scope="col"
+                        class="sticky w-72 border-b border-gray-300 bg-opacity-75 py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 backdrop-blur backdrop-filter sm:pl-6 lg:pl-8">
+                        TAGS
+                    </th>
+                    <th scope="col"
+                        class=" w-12 border-b border-gray-300 bg-opacity-75 relative py-3.5 pl-3 pr-4 sm:pr-0">
+                        <span class="sr-only">EDIT</span>
+                    </th>
+                    <!--Selected action bar-->
+                    <template x-if="current.actions.length > 0 && queryresult.selected">
+                        <div class="absolute top-0 left-14 flex h-12 items-center space-x-3 bg-gray-50 sm:left-12">
+                            <span class="font-semibold" x-text="queryresult.selected"></span>
+                            <span>Selected</span>
+                            <a href="#" @click="queryresult.selectResult($event)" class="text-gray-600">or Select
+                                result(<span class="font-semibold" x-text="queryresult.total"></span>)</a>
+                            <template x-for="action in current.actions">
+                                <button type="button" x-text="action.name" :class="action.class"
+                                    @click="action.onclick()"
+                                    class="inline-flex items-center rounded px-2 py-1 text-sm font-semibold shadow-sm"></button>
+                            </template>
+                        </div>
+                    </template>
+                </tr>
+            </thead>
+            <tbody class="overflow-y-scroll">
+                <!-- Query result -->
+                <template x-for="(row,rowIdx) in queryresult.rows" :key="rowIdx">
+                    <template x-if="row.names">
+                        <tr class="hover:bg-gray-50" :class="row.selected?'bg-gray-50':'bg-white'">
+                            <template x-if="current.actions.length > 0">
+                                <td class="border-b border-gray-200 relative px-7 sm:w-12 sm:px-6">
+                                    <input type="checkbox" x-model="row.selected"
+                                        @click="queryresult.onSelectRow($event, row)"
+                                        class="absolute left-4 top-1/2 -mt-2 h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600" />
+                                </td>
+                            </template>
+                            <td
+                                class="w-72 whitespace-nowrap border-b border-gray-200 py-3 pl-4 pr-3 text-sm text-gray-900 sm:pl-6 lg:pl-8">
+                                <div class="flex justify-between items-center cursor-pointer"
+                                    @click="editObject($event, row)">
+                                    <div class="flex-col space-y-2">
+                                        <div class="text-gray-700" x-text="row.rawData.title"></div>
+                                        <div class="flex mt-1 items-center gap-x-2 text-xs  text-gray-500">
+                                            <template x-if="row.rawData.published">
+                                                <p
+                                                    class="inline-flex items-center gap-x-1.5 rounded-md bg-green-100 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-200/20">
+                                                    Published
+                                                </p>
+                                            </template>
+                                            <template x-if="!row.rawData.published">
+                                                <p
+                                                    class="inline-flex items-center gap-x-1.5 rounded-md bg-yellow-100 px-2 py-1 text-xs font-medium text-yellow-700 ring-1 ring-inset ring-yellow-200/20">
+                                                    Not published
+                                                </p>
+                                            </template>
+                                            <template x-if="row.rawData.updated_at">
+                                                <p x-text="new Date(row.rawData.updated_at).toLocaleString()"></p>
+                                            </template>
+                                            <template x-if="row.rawData.is_draft">
+                                                <p
+                                                    class="text-center rounded-md whitespace-nowrap px-2 py-1 text-xs font-medium ring-1 ring-inset text-yellow-800 bg-yellow-50 ring-yellow-600/20">
+                                                    Draft</p>
+                                            </template>
+                                            <svg viewBox="0 0 2 2" class="h-0.5 w-0.5 fill-current">
+                                                <circle cx="1" cy="1" r="1" />
+                                            </svg>
+                                            <p>
+                                                <span x-text="row.rawData.author"></span>
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div class="flex w-24 h-14 items-center rounded bg-gray-50 ring-2 ring-white">
+                                        <template x-if="row.rawData.thumbnail">
+                                            <img class="max-h-full" :src="row.rawData.thumbnail"
+                                                :alt="row.rawData.title">
+                                        </template>
+                                    </div>
+                                </div>
+                            </td>
+                            <td
+                                class="w-72 whitespace-nowrap border-b border-gray-200 py-3 pl-4 pr-3 text-sm text-gray-900 sm:pl-6 lg:pl-8">
+                                <div class="flex-col items-center space-y-2">
+                                    <div class="text-gray-800" x-admin-render="row.names.site"></div>
+                                    <div class="text-gray-700 w-56 truncate" x-admin-render="row.names.category_id">
+                                    </div>
+                                </div>
+                            </td>
+                            <td
+                                class="w-72 whitespace-nowrap border-b border-gray-200 py-3 pl-4 pr-3 text-sm text-gray-900 sm:pl-6 lg:pl-8">
+                                <div class="flex flex-wrap truncate  " x-admin-render="row.names.tags"></div>
+                            </td>
+                            <td
+                                class="whitespace-nowrap border-b border-gray-200 py-4 pl-3 pr-4 text-right text-sm font-medium sm:pl-2 lg:pl-4">
+                                <template x-if="row.view_on_site">
+                                    <a :href="row.view_on_site" class="text-indigo-600 hover:text-indigo-900"
+                                        target="_blank">View</a>
+                                </template>
+                            </td>
+                        </tr>
+                    </template>
+                </template>
+            </tbody>
+        </table>
+    </div>
+</template>

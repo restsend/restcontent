@@ -1,0 +1,33 @@
+<div class="flex-col w-64 mt-2 pr-4">
+    <template x-if="$store.sites">
+        <div x-admin-edit="$store.sites"></div>
+    </template>
+    <p class="mt-6 leading-5">Folders</p>
+    <template x-if="$store.sites && $store.sites.selected">
+        <div class="mt-2 w-full flex space-x-3">
+            <input type="text" placeholder="New Folder Name"
+                class="rounded-md border border-gray-300 focus:ring-1 focus:ring-indigo-600 focus:border-transparent w-48 px-4 py-1 text-sm text-gray-700 placeholder-gray-400 shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2" />
+            <button type="button" @click="$store.media.createFolder($store.sites.selected, $el.previousElementSibling)"
+                class="rounded-full bg-indigo-600 p-1 text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">
+                <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <path
+                        d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" />
+                </svg>
+            </button>
+        </div>
+    </template>
+    <template x-if="$store.sites && $store.sites.selected">
+        <div class="flex-col mt-2 bg-white rounded-md min-h-full px-2 py-2 space-y-1">
+            <ul>
+                <template x-for="folder in $store.media.folders">
+                    <li class="flex rounded-md justify-between px-1 py-1 space-x-3 hover:bg-gray-50 cursor-pointer"
+                        @click="$store.media.changeFolder($store.sites.selected, folder.path, $event)">
+                        <span class="items-center" href="#" x-text="folder.name"></span>
+                        <span x-show="folder.count !== undefined" x-text="folder.count"
+                            class="items-center rounded-md bg-blue-100 px-1.5 py-0.5 text-xs font-medium text-blue-700"></span>
+                    </li>
+                </template>
+            </ul>
+        </div>
+    </template>
+</div>

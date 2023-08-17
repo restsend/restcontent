@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html class="h-full bg-gray-50">
+
+<head>
+    <title>RestContent Installer</title>
+    <link rel="stylesheet" href="" />
+    <link rel="stylesheet" href="/static/inter.css" />
+    <script src="/static/tailwind-3.3.2.js"></script>
+    <script src="/static/alpinejs-router-1.x.x.min.js" defer></script>
+    <script src="/static/alpinejs-3.12.3.min.js" defer></script>
+</head>
+<script>
+    function randText(len = 8) {
+        let text = ''
+        const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
+        for (let i = 0; i < len; i++) {
+            text += possible.charAt(Math.floor(Math.random() * possible.length))
+        }
+        return text
+    }
+    const setupApp = () => ({
+        dbDriver: 'mysql',
+        dbHost: '127.0.0.1',
+        dbPort: '3306',
+        dbName: 'restcontent',
+        dbFilename: 'data/restcontent.db',
+        dbCharset: 'utf8mb4',
+        dbUser: 'root',
+        dbPassword: '',
+        buildTime: '{{buildTime}}',
+        gitCommit: '{{gitCommit|default:"dev"}}',
+        osVersion: '{{osVersion}}',
+        cwd: '{{cwd}}',
+        superUsername: 'root@restcontent',
+        superPassword: '',
+        showProgress: false,
+        steps: [],
+        envLogFile: 'data/restcontent.log',
+        envSalt: randText(32),
+        envCookieSecret: randText(32),
+        enableSqlite: '{{enableSqlite}}' == 'True',
+        setupResult: {
+            next: '{{next|default:"/admin/"}}',
+            success: false,
+            failed: false,
+            timeout: 10,
+        },
+        init() {
+            console.log('init')
+        },
+
+        async execStep(data, url, message, params) {
+            let step = Alpine.reactive(data)
+            this.steps.push(step)
+
+            let st = new Date()
+            let resp = await fetch(url, {
+                method: 'POST',
+                body: JSON.stringify(params)
+            })
+
+            this.setupResult.failed = false
+            if (resp.status != 200) {
+                let body = await resp.text()
+                step.message = `${body || resp.statusText}`
+                step.status = `failed`
+                this.setupResult.failed = true
+                return
+            }
+
+            let et = new Date()
+            step.time = `${et - st} ms`
+            step.message = message
+            step.status = 'done'
+
+            // sleep 500ms 
+            await new Promise(r => setTimeout(r, 500))
+        },
+
+        async saveSetup(event) {
+            let form = document.querySelector('form')
+            if (!form.checkValidity()) {
+                form.reportValidity()
+                return
+            }
+            this.steps = []
+            this.showProgress = true
+
+            let dbConfig = {
+                dbDriver: this.dbDriver,
+                dbHost: this.dbHost,
+                dbPort: this.dbPort,
+                dbName: this.dbName,
+                dbFilename: this.dbFilename,
+                dbCharset: this.dbCharset,
+                dbUser: this.dbUser,
+                dbPassword: this.dbPassword,
+            }
+            const dbHost = this.dbDriver == 'mysql' ? this.dbHost : this.dbFilename
+            const dbName = this.dbDriver == 'mysql' ? this.dbName : this.dbFilename
+
+            await this.execStep({
+                name: 'Ping database',
+                status: 'pending',
+                time: '',
+                message: '',
+            },
+                '/setup/ping_database', `${dbHost} connected`, dbConfig)
+            if (this.setupResult.failed) {
+                return
+            }
+
+            await this.execStep({
+                name: 'Flush config into .env',
+                status: 'pending',
+                time: '',
+            },
+                '/setup/write_env', `${this.superUsername} ok`,
+                {
+                    dbConfig,
+                    salt: this.envSalt,
+                    cookieSecret: this.envCookieSecret,
+                    logFile: this.envLogFile,
+                })
+
+            if (this.setupResult.failed) {
+                return
+            }
+
+            await this.execStep({
+                name: 'Migrate database',
+                status: 'pending',
+                time: '',
+            },
+                '/setup/migrate_database', `${dbName} ok`, dbConfig)
+            if (this.setupResult.failed) {
+                return
+            }
+
+            await this.execStep({
+                name: 'Create superuser',
+                status: 'pending',
+                time: '',
+            },
+                '/setup/create_superuser', `${this.superUsername} ok`,
+                {
+                    dbConfig,
+                    superUsername: this.superUsername,
+                    superPassword: this.superPassword,
+                })
+            if (this.setupResult.failed) {
+                return
+            }
+
+            await this.execStep({
+                name: 'Restart server',
+                status: 'pending',
+                time: '',
+            },
+                '/setup/restart', `ok`,
+                {
+                    salt: this.envSalt,
+                    cookieSecret: this.envCookieSecret,
+                    logFile: this.envLogFile,
+                })
+
+            if (this.setupResult.failed) {
+                return
+            }
+
+            this.setupResult.success = true
+
+            const tryRedirect = () => {
+                this.setupResult.timeout -= 1
+                if (this.setupResult.timeout > 0) {
+                    setTimeout(tryRedirect, 1000)
+                    return
+                }
+                window.location = this.setupResult.next
+            }
+            setTimeout(() => {
+                tryRedirect()
+            }, 1000)
+        },
+        closeProgress(event) {
+            this.steps = []
+            this.showProgress = false
+        }
+    })
+</script>
+
+<body class="h-full">
+    <style>
+        :root {
+            font-family: 'Inter', sans-serif;
+        }
+
+        [v-cloak] {
+            display: none;
+        }
+    </style>
+    <div x-data="setupApp" class="mt-12 w-1/2 mx-auto">
+        <template x-if="showProgress">
+            <div class="absolute z-20 shadow-lg bg-gray-50 rounded-lg w-1/2 mt-20 px-4 py-6 text-sm">
+                <div class="px-6 py-6 leading-5">Waiting setup </div>
+                <ul role="list" class="space-y-6">
+                    <template x-for="step in steps">
+                        <li class="relative flex gap-x-4">
+                            <div class="absolute left-0 top-0 flex w-6 justify-center -bottom-6">
+                                <div class="w-px bg-gray-200"></div>
+                            </div>
+                            <div class="relative flex h-6 w-6 flex-none items-center justify-center">
+                                <template x-if="step.status == 'pending' ">
+                                    <span class="relative flex h-3 w-3">
+                                        <span
+                                            class="animate-ping absolute inline-flex h-full w-full rounded-full bg-sky-400 opacity-75"></span>
+                                        <span class="relative inline-flex rounded-full h-3 w-3 bg-sky-500"></span>
+                                    </span>
+                                </template>
+                                <template x-if="step.status == 'done' ">
+                                    <svg class="h-6 w-6 text-indigo-600" viewBox="0 0 24 24" fill="currentColor"
+                                        aria-hidden="true">
+                                        <path fill-rule="evenodd"
+                                            d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12zm13.36-1.814a.75.75 0 10-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 00-1.06 1.06l2.25 2.25a.75.75 0 001.14-.094l3.75-5.25z"
+                                            clip-rule="evenodd" />
+                                    </svg>
+                                </template>
+                                <template x-if="step.status == 'failed' ">
+                                    <span class="relative flex h-3 w-3">
+                                        <span
+                                            class="absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                                        <span class="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+                                    </span>
+                                </template>
+                            </div>
+                            <p class="flex-auto py-0.5 leading-5 text-gray-500 gap-x-6">
+                                <span class="font-medium text-gray-900" x-text="step.name"></span>
+                                <span x-text="step.message"></span>
+                            </p>
+                            <time class="flex-none py-0.5 leading-5 text-gray-500" x-text="step.time"></time>
+                        </li>
+                    </template>
+                </ul>
+                <template x-if="setupResult.success || setupResult.failed">
+                    <div class="mt-8 pt-4 px-4 items-center border-t border-gray-100">
+                        <template x-if="setupResult.success">
+                            <div class="flex justify-between">
+                                <p>Initialize done, will redirect to <span x-text="setupResult.next"></span> in <span
+                                        x-text="setupResult.timeout"></span>
+                                    seconds</p>
+                                <a :href="setupResult.next"
+                                    class="text-sm font-medium text-indigo-600 hover:text-indigo-500">View site</a>
+                            </div>
+                        </template>
+                        <template x-if="setupResult.failed">
+                            <div class="flex justify-between">
+                                <p>Initialize fail, check your setup before try again </p>
+                                <button type="button" @click="closeProgress(event)"
+                                    class="text-sm font-medium text-indigo-600 hover:text-indigo-500">Close</button>
+                            </div>
+                        </template>
+                    </div>
+                </template>
+            </div>
+        </template>
+        <form onsubmit="onsubmit($event)" action="#">
+            <div class="divide-y divide-gray-200 overflow-hidden rounded-lg bg-white shadow">
+                <div class="flex  justify-between px-4 py-5 sm:px-6 items-center">
+                    <div>
+                        <h2 class="text-lg leading-6 font-medium text-gray-900">
+                            RestContent Setup
+                        </h2>
+                        <p class="mt-1 text-sm text-gray-500">
+                            Configure the database and environment variables to complete the setup.
+                        </p>
+                    </div>
+                    <template x-if="!showProgress">
+                        <div class="px-4 py-5 sm:p-6">
+                            <div class="flex justify-end">
+                                <button type="button" @click="saveSetup(event)"
+                                    class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-500 focus:outline-none">
+                                    Save Setup
+                                </button>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+                <div class="px-8 py-1">
+                    <dl class="text-sm leading-6">
+                        <div class="sm:flex items-center">
+                            <dt class="text-gray-700 sm:w-64 sm:flex-none sm:pr-6">Build Time</dt>
+                            <dd class="flex justify-between gap-x-6 sm:mt-0 sm:flex-auto">
+                                <div class="text-gray-700" x-text="buildTime"></div>
+                            </dd>
+                        </div>
+                        <div class="sm:flex items-center">
+                            <dt class="text-gray-700 sm:w-64 sm:flex-none sm:pr-6">Git Commit</dt>
+                            <dd class="flex justify-between gap-x-6 sm:mt-0 sm:flex-auto">
+                                <div class="text-gray-700" x-text="gitCommit"></div>
+                            </dd>
+                        </div>
+                        <div class="sm:flex items-center">
+                            <dt class="text-gray-700 sm:w-64 sm:flex-none sm:pr-6">OS Version</dt>
+                            <dd class="flex justify-between gap-x-6 sm:mt-0 sm:flex-auto">
+                                <div class="text-gray-700" x-text="osVersion"></div>
+                            </dd>
+                        </div>
+                        <div class="sm:flex items-center">
+                            <dt class="text-gray-700 sm:w-64 sm:flex-none sm:pr-6">Work Directory</dt>
+                            <dd class="flex justify-between gap-x-6 sm:mt-0 sm:flex-auto">
+                                <div class="text-gray-700" x-text="cwd"></div>
+                            </dd>
+                        </div>
+                    </dl>
+                </div>
+                <div class="px-4 py-2 sm:p-6">
+                    <div>
+                        <label class="text-base font-semibold text-gray-900">Database settings</label>
+                        <fieldset class="mt-4">
+                            <legend class="sr-only">Database driver</legend>
+                            <div class="space-y-4 sm:flex sm:items-center sm:space-x-10 sm:space-y-0">
+                                <div class="flex items-center">
+                                    <input id="mysql" name="dbdriver" type="radio" value="mysql" x-model="dbDriver"
+                                        class="h-4 w-4 border-gray-300 text-indigo-600 focus:ring-indigo-600">
+                                    <label for="mysql"
+                                        class="ml-3 block text-sm font-medium leading-6 text-gray-900">MySQL
+                                    </label>
+                                </div>
+                                <template x-if="enableSqlite">
+                                    <div class="flex items-center">
+                                        <input id="sqlite" name="dbdriver" type="radio" value="sqlite"
+                                            x-model=" dbDriver"
+                                            class="h-4 w-4 border-gray-300 text-indigo-600 focus:ring-indigo-600">
+                                        <label for="sqlite"
+                                            class="ml-3 block text-sm font-medium leading-6 text-gray-900">SqlLite</label>
+                                    </div>
+                                </template>
+                            </div>
+                        </fieldset>
+                    </div>
+                    <div class="mt-4">
+                        <template x-if="dbDriver == 'mysql'">
+                            <div class="grid grid-cols-1 gap-x-8 gap-y-10 md:grid-cols-3">
+                                <div>
+                                    <p class="mt-2 text-sm leading-6 text-gray-600">MySQL 8 or MariaDB is recommended
+                                        for production environment, which has good stability and performance.</p>
+                                </div>
+
+                                <div
+                                    class="mt-2 grid max-w-2xl grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6 md:col-span-2">
+                                    <div class="sm:col-span-3">
+                                        <label class="block text-sm font-medium leading-6 text-gray-900">Server
+                                            Address (IP or Hostname)</label>
+                                        <div class="mt-2">
+                                            <input type="text" x-model="dbHost" :required="dbDriver == 'mysql'"
+                                                class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
+                                        </div>
+                                    </div>
+
+                                    <div class="sm:col-span-3">
+                                        <label class="block text-sm font-medium leading-6 text-gray-900">Port</label>
+                                        <div class="mt-2">
+                                            <input type="text" x-model="dbPort"
+                                                class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
+                                        </div>
+                                    </div>
+
+                                    <div class="sm:col-span-3">
+                                        <label class="block text-sm font-medium leading-6 text-gray-900">Database
+                                            Name</label>
+                                        <div class="mt-2">
+                                            <input type="text" x-model="dbName" :required="dbDriver == 'mysql'"
+                                                class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
+                                        </div>
+                                    </div>
+
+                                    <div class="sm:col-span-3">
+                                        <label class="block text-sm font-medium leading-6 text-gray-900">Charset</label>
+                                        <div class="mt-2">
+                                            <input type="text" x-model="dbCharset"
+                                                class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
+                                        </div>
+                                    </div>
+
+                                    <div class="sm:col-span-3">
+                                        <label
+                                            class="block text-sm font-medium leading-6 text-gray-900">Username</label>
+                                        <div class="mt-2">
+                                            <input type="text" x-model="dbUser" :required="dbDriver == 'mysql'"
+                                                class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
+                                        </div>
+                                    </div>
+
+                                    <div class="sm:col-span-3">
+                                        <label
+                                            class="block text-sm font-medium leading-6 text-gray-900">Password</label>
+                                        <div class="mt-2">
+                                            <input type="password" x-model="dbPassword" :required="dbDriver == 'mysql'"
+                                                class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+                        <template x-if="dbDriver == 'sqlite'">
+                            <div class="grid grid-cols-1 gap-x-8 gap-y-10 md:grid-cols-3">
+                                <div>
+                                    <p class="mt-2 text-sm leading-6 text-gray-600">Sqlite is a portable file database.
+                                        That is recommended for use in test and demo site.</p>
+                                </div>
+
+                                <div
+                                    class="mt-2 grid max-w-2xl grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6 md:col-span-2">
+                                    <div class="sm:col-span-3">
+                                        <label class="block text-sm font-medium leading-6 text-gray-900">Database
+                                            Name</label>
+                                        <div class="mt-2">
+                                            <input type="text" x-model="dbFilename" :required="dbDriver == 'sqlite'"
+                                                class=" block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm
+                                                ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2
+                                                focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+                <div class="px-4 py-5 sm:p-6">
+                    <div>
+                        <label class="text-base font-semibold text-gray-900">SuperUser</label>
+                    </div>
+                    <div class="grid grid-cols-1 gap-x-8 gap-y-10 md:grid-cols-3">
+                        <div>
+                            <p class="mt-4 text-sm leading-6 text-gray-600">It is necessary to initialize an
+                                administrator
+                                account. Please remember the account name and password.</p>
+                        </div>
+
+                        <div class="mt-4 grid max-w-2xl grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6 md:col-span-2">
+                            <div class="sm:col-span-3">
+                                <label class="block text-sm font-medium leading-6 text-gray-900">Username</label>
+                                <div class="mt-2">
+                                    <input type="text" x-model="superUsername"
+                                        class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
+                                </div>
+                            </div>
+                            <div class="sm:col-span-3">
+                                <label class="block text-sm font-medium leading-6 text-gray-900">Password</label>
+                                <div class="mt-2">
+                                    <input type="password" x-model="superPassword" placeholder="Random password"
+                                        required minlength="6"
+                                        class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="px-4 py-5 sm:p-6">
+                    <div>
+                        <label class="text-base font-semibold text-gray-900">Builtin ENV</label>
+                    </div>
+                    <div class="grid grid-cols-1 gap-x-8 gap-y-10 md:grid-cols-3">
+                        <div>
+                            <p class="mt-4 text-sm leading-6 text-gray-600">Some key configuration parameters</p>
+                        </div>
+
+                        <div class="mt-4 grid w-full grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6 md:col-span-2">
+                            <div class="sm:col-span-6">
+                                <label class="block text-sm font-medium leading-6 text-gray-900">Password Salt</label>
+                                <div class="mt-2">
+                                    <input type="text" x-model="envSalt" required
+                                        class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
+                                    <label class="text-xs text-gray-500">Ensure the security strength of the user's
+                                        system password</label>
+                                </div>
+                            </div>
+                            <div class="sm:col-span-6">
+                                <label class="block text-sm font-medium leading-6 text-gray-900">Cookie Secret</label>
+                                <div class="mt-2">
+                                    <input type="text" x-model="envCookieSecret"
+                                        class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
+                                    <label class="text-xs text-gray-500">Ensure the security strength of the user's
+                                        cookie </label>
+                                </div>
+                            </div>
+                            <div class="sm:col-span-6">
+                                <label class="block text-sm font-medium leading-6 text-gray-900">Log file</label>
+                                <div class="mt-2">
+                                    <input type="text" x-model="envLogFile"
+                                        class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
+                                    <label class="text-xs text-gray-500">Log output file</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <a class="flex items-center px-4 py-4 text-sm text-gray-400 space-x-3" href="https://restcontent.com">
+                <span>The <strong>RestContent</strong> is headless cms for developers.</span>
+            </a>
+        </form>
+    </div>
+</body>
