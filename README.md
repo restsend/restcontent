@@ -1,5 +1,5 @@
 ### RestContent - Headless CMS for backend developer
- [![Build Status](https://github.com/tsenart/vegeta/workflows/CI/badge.svg)](https://github.com/restsend/restcontent/actions) [![Go Report Card](https://goreportcard.com/report/github.com/restsend/restcontent)](https://goreportcard.com/report/github.com/restsend/restcontent) [![PkgGoDev](https://pkg.go.dev/badge/github.com/restsend/restcontent)](https://pkg.go.dev/badge/github.com/restsend/restcontent)
+ [![Build Status](https://github.com/tsenart/vegeta/workflows/CI/badge.svg)](https://github.com/restsend/restcontent/actions) [![Go Report Card](https://goreportcard.com/badge/github.com/restsend/restcontent)](https://goreportcard.com/report/github.com/restsend/restcontent) [![PkgGoDev](https://pkg.go.dev/badge/github.com/restsend/restcontent)](https://pkg.go.dev/badge/github.com/restsend/restcontent)
 
 RestContent is a Headless CMS written in Go+Alpine, supports multiple sites, media libraries, and multiple users, and provides content management services for iOS, Android, Nuxt, Next, etc.
 
