@@ -126,6 +126,8 @@ github.com/restsend/carrot v0.0.0-20230801123320-737ba3bb10d2 h1:Pw7NT3GBGW2i3C2
 github.com/restsend/carrot v0.0.0-20230801123320-737ba3bb10d2/go.mod h1:9EntF/In+S/EpqtzwCcqyNrrEakEHCgYIoVKakM8EFg=
 github.com/restsend/carrot v0.0.0-20230831112513-a3fb808e74ad h1:jFvvOOgfb8kwuZkViSaVtxjPRotwaZWKGVgDE47j2Sc=
 github.com/restsend/carrot v0.0.0-20230831112513-a3fb808e74ad/go.mod h1:9EntF/In+S/EpqtzwCcqyNrrEakEHCgYIoVKakM8EFg=
+github.com/restsend/carrot v0.0.0-20230902095923-94b2d88f3dab h1:VAMFsZEJtsBDsOAEk3Au6A1G6B6WP0pvrb/UQBotqLI=
+github.com/restsend/carrot v0.0.0-20230902095923-94b2d88f3dab/go.mod h1:9EntF/In+S/EpqtzwCcqyNrrEakEHCgYIoVKakM8EFg=
 github.com/sevlyar/go-daemon v0.1.6 h1:EUh1MDjEM4BI109Jign0EaknA2izkOyi0LV3ro3QQGs=
 github.com/sevlyar/go-daemon v0.1.6/go.mod h1:6dJpPatBT9eUwM5VCw9Bt6CdX9Tk6UWvhW3MebLDRKE=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=

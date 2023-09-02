@@ -1,4 +1,4 @@
-FROM golang:1.19-2022 as builder
+FROM golang:1.20-bullseye as builder
 RUN mkdir /build
 ADD . /build/
 WORKDIR /build
