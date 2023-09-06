@@ -69,6 +69,29 @@ type ContentQueryResult struct {
 	Suggestions []RelationContent `json:"suggestions,omitempty"`
 }
 
+func MakeDuplicate(db *gorm.DB, obj any) error {
+	if page, ok := obj.(*Page); ok {
+		page.ID = page.ID + "-copy-" + carrot.RandText(3)
+		page.Title = page.Title + "-copy"
+		page.IsDraft = true
+		page.PreviewURL = ""
+		page.Published = false
+		page.CreatedAt = time.Now()
+		page.UpdatedAt = time.Now()
+		return db.Create(page).Error
+	} else if post, ok := obj.(*Post); ok {
+		post.ID = post.ID + "-copy-" + carrot.RandText(3)
+		post.Title = post.Title + "-copy"
+		post.IsDraft = true
+		post.PreviewURL = ""
+		post.CreatedAt = time.Now()
+		post.UpdatedAt = time.Now()
+		post.Published = false
+		return db.Create(post).Error
+	}
+	return errors.New("invalid object, must be page or post")
+}
+
 func MakePublish(db *gorm.DB, siteID, ID string, obj any, publish bool) error {
 	tx := db.Model(obj).Where("site_id", siteID).Where("id", ID)
 	vals := map[string]any{"published": publish}

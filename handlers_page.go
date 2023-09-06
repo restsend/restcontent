@@ -63,6 +63,13 @@ func (m *Manager) getPageObject() carrot.AdminObject {
 				},
 			},
 			{
+				Path: "duplicate",
+				Name: "Duplicate",
+				Handler: func(db *gorm.DB, c *gin.Context, obj any) (any, error) {
+					return m.handleMakePageDuplicate(db, c, obj)
+				},
+			},
+			{
 				Path: "make_publish",
 				Name: "Make Publish",
 				Handler: func(db *gorm.DB, c *gin.Context, obj any) (any, error) {
@@ -155,6 +162,13 @@ func (m *Manager) getPostObject() carrot.AdminObject {
 				},
 			},
 			{
+				Path: "duplicate",
+				Name: "Duplicate",
+				Handler: func(db *gorm.DB, c *gin.Context, obj any) (any, error) {
+					return m.handleMakePageDuplicate(db, c, obj)
+				},
+			},
+			{
 				Path: "make_publish",
 				Name: "Make Publish",
 				Handler: func(db *gorm.DB, c *gin.Context, obj any) (any, error) {
@@ -206,6 +220,14 @@ func (m *Manager) handleMakePagePublish(db *gorm.DB, c *gin.Context, obj any, pu
 	id := c.Query("id")
 	if err := models.MakePublish(db, siteId, id, obj, publish); err != nil {
 		carrot.Warning("make publish failed:", siteId, id, publish, err)
+		return false, err
+	}
+	return true, nil
+}
+
+func (m *Manager) handleMakePageDuplicate(db *gorm.DB, c *gin.Context, obj any) (any, error) {
+	if err := models.MakeDuplicate(db, obj); err != nil {
+		carrot.Warning("make duplicate failed:", obj, err)
 		return false, err
 	}
 	return true, nil
