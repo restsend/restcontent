@@ -61,6 +61,9 @@ func RemoveDirectory(db *gorm.DB, path string) (string, error) {
 	}
 
 	parent, name := filepath.Split(path)
+	if parent != "/" {
+		parent = strings.TrimSuffix(parent, "/")
+	}
 	return parent, db.Where("path", parent).Where("name", name).Delete(&Media{}).Error
 }
 
