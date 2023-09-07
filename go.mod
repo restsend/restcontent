@@ -4,12 +4,10 @@ go 1.19
 
 require (
 	github.com/gin-gonic/gin v1.9.1
-	github.com/stretchr/testify v1.8.3
 	gorm.io/gorm v1.24.6
 )
 
 require (
-	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/flosch/pongo2/v6 v6.0.0 // indirect
 	github.com/gin-contrib/sessions v0.0.4 // indirect
 	github.com/go-sql-driver/mysql v1.7.0 // indirect
@@ -21,7 +19,6 @@ require (
 	github.com/jinzhu/now v1.1.5 // indirect
 	github.com/kardianos/osext v0.0.0-20190222173326-2bc1f35cddc0 // indirect
 	github.com/mattn/go-sqlite3 v1.14.16 // indirect
-	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/quasoft/memstore v0.0.0-20191010062613-2bce066d2b0b // indirect
 	gorm.io/driver/mysql v1.4.7 // indirect
 	gorm.io/driver/sqlite v1.4.4 // indirect
@@ -43,7 +40,7 @@ require (
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/pelletier/go-toml/v2 v2.0.8 // indirect
-	github.com/restsend/carrot v0.0.0-20230906101242-2a912066362d
+	github.com/restsend/carrot v0.0.0-20230907012343-d7c806a54406
 	github.com/sevlyar/go-daemon v0.1.6
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.2.11 // indirect
