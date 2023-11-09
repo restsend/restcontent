@@ -31,8 +31,8 @@ func (s *StringArray) Scan(input interface{}) error {
 }
 
 type BaseContent struct {
-	UpdatedAt   time.Time    `json:"updatedAt"`
-	CreatedAt   time.Time    `json:"createdAt"`
+	UpdatedAt   time.Time    `json:"updatedAt" gorm:"index"`
+	CreatedAt   time.Time    `json:"createdAt" gorm:"index"`
 	Thumbnail   string       `json:"thumbnail,omitempty" gorm:"size:500"`
 	Tags        string       `json:"tags,omitempty" gorm:"size:200;index"`
 	Title       string       `json:"title,omitempty" gorm:"size:200"`

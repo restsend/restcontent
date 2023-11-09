@@ -12,10 +12,10 @@ RUN cd cmd && \
     go build -ldflags "-X main.GitCommit=$GIT_COMMIT -X main.BuildTime=$BUILD_TIME" \
     -o /build/restcontent .
 
-FROM ubuntu:22.04
-LABEL maintainer="shenjinti@fourz.cn"
+FROM debian:bullseye
+LABEL maintainer="admin@restsend.com"
 LABEL org.opencontainers.image.source=https://github.com/restsend/restcontent
-RUN apt-get update && apt-get install -y ca-certificates tzdata
+RUN apt-get update -y && apt-get install -y ca-certificates tzdata
 ENV DEBIAN_FRONTEND noninteractive
 ENV LANG C.UTF-8
 

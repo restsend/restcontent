@@ -22,7 +22,7 @@ import (
 
 type UploadResult struct {
 	PublicUrl   string `json:"publicUrl"`
-	Thumbnail   string `json:"Thumbnail"`
+	Thumbnail   string `json:"thumbnail"`
 	Path        string `json:"path"`
 	Name        string `json:"name"`
 	External    bool   `json:"external"`
