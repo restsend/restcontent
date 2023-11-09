@@ -1,4 +1,4 @@
-FROM golang:1.20-bullseye as builder
+FROM golang:1.20-bookworm as builder
 RUN mkdir /build
 ADD . /build/
 WORKDIR /build
@@ -12,7 +12,7 @@ RUN cd cmd && \
     go build -ldflags "-X main.GitCommit=$GIT_COMMIT -X main.BuildTime=$BUILD_TIME" \
     -o /build/restcontent .
 
-FROM debian:bullseye
+FROM debian:bookworm
 LABEL maintainer="admin@restsend.com"
 LABEL org.opencontainers.image.source=https://github.com/restsend/restcontent
 RUN apt-get update -y && apt-get install -y ca-certificates tzdata
