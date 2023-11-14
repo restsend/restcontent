@@ -8,7 +8,7 @@ require (
 )
 
 require (
-	github.com/chenzhuoyu/iasm v0.9.0 // indirect
+	github.com/chenzhuoyu/iasm v0.9.1 // indirect
 	github.com/flosch/pongo2/v6 v6.0.0 // indirect
 	github.com/gin-contrib/sessions v0.0.5 // indirect
 	github.com/go-sql-driver/mysql v1.7.1 // indirect
@@ -41,15 +41,15 @@ require (
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/pelletier/go-toml/v2 v2.1.0 // indirect
-	github.com/restsend/carrot v0.0.0-20231105010202-4807ddb28bcf
+	github.com/restsend/carrot v0.0.0-20231114084550-1b769b1f1bf8
 	github.com/sevlyar/go-daemon v0.1.6
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.2.11 // indirect
-	golang.org/x/arch v0.5.0 // indirect
-	golang.org/x/crypto v0.14.0 // indirect
-	golang.org/x/net v0.17.0 // indirect
-	golang.org/x/sys v0.13.0 // indirect
-	golang.org/x/text v0.13.0 // indirect
+	golang.org/x/arch v0.6.0 // indirect
+	golang.org/x/crypto v0.15.0 // indirect
+	golang.org/x/net v0.18.0 // indirect
+	golang.org/x/sys v0.14.0 // indirect
+	golang.org/x/text v0.14.0 // indirect
 	google.golang.org/protobuf v1.31.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

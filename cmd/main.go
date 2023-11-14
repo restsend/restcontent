@@ -85,7 +85,7 @@ func main() {
 
 	db, err := carrot.InitDatabase(lw, dbDriver, dsn)
 	if err != nil {
-		fmt.Println("init database fail", err)
+		fmt.Println("init database failed", err)
 		return
 	}
 
@@ -133,7 +133,7 @@ func main() {
 	m.BuildTime = BuildTime
 
 	if err = m.Prepare(r, lw); err != nil {
-		log.Panic("prepare restcontent fail", err)
+		log.Panic("prepare restcontent failed", err)
 		return
 	}
 	if addr[0] == ':' {
