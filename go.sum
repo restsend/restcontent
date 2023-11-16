@@ -80,6 +80,8 @@ github.com/quasoft/memstore v0.0.0-20191010062613-2bce066d2b0b h1:aUNXCGgukb4gtY
 github.com/quasoft/memstore v0.0.0-20191010062613-2bce066d2b0b/go.mod h1:wTPjTepVu7uJBYgZ0SdWHQlIas582j6cn2jgk4DDdlg=
 github.com/restsend/carrot v0.0.0-20231114084550-1b769b1f1bf8 h1:9vpiUgd+ULdYL35D+b5J8X5yT1VxwuUFGP8y1uzyl14=
 github.com/restsend/carrot v0.0.0-20231114084550-1b769b1f1bf8/go.mod h1:7Wb/WQc7Erx0tly+HSBVNt/k1PdyBZMNyMAuE0Xi3jc=
+github.com/restsend/carrot v0.0.0-20231116041417-009d91ca4887 h1:bjl9AdvM52wAEKGIQDcDicB1Jrh9r97VxQbGiMabIa4=
+github.com/restsend/carrot v0.0.0-20231116041417-009d91ca4887/go.mod h1:7Wb/WQc7Erx0tly+HSBVNt/k1PdyBZMNyMAuE0Xi3jc=
 github.com/sevlyar/go-daemon v0.1.6 h1:EUh1MDjEM4BI109Jign0EaknA2izkOyi0LV3ro3QQGs=
 github.com/sevlyar/go-daemon v0.1.6/go.mod h1:6dJpPatBT9eUwM5VCw9Bt6CdX9Tk6UWvhW3MebLDRKE=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
