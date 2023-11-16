@@ -3,6 +3,7 @@ RUN mkdir /build
 ADD . /build/
 WORKDIR /build
 ENV CGO_ENABLED=1 GO111MODULE=on GOPROXY=https://goproxy.cn,direct
+RUN ln -fs /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
 RUN go mod download
 RUN go test ./...
 
