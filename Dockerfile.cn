@@ -2,8 +2,7 @@ FROM golang:1.20-bookworm as builder
 RUN mkdir /build
 ADD . /build/
 WORKDIR /build
-ENV CGO_ENABLED=1 GO111MODULE=on GOPROXY=https://goproxy.cn,direct
-RUN ln -fs /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
+ENV CGO_ENABLED=1 GO111MODULE=on GOPROXY=https://goproxy.cn,direct TZ=Asia/Shanghai
 RUN go mod download
 RUN go test ./...
 
