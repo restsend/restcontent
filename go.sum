@@ -84,6 +84,10 @@ github.com/restsend/carrot v0.0.0-20231116041417-009d91ca4887 h1:bjl9AdvM52wAEKG
 github.com/restsend/carrot v0.0.0-20231116041417-009d91ca4887/go.mod h1:7Wb/WQc7Erx0tly+HSBVNt/k1PdyBZMNyMAuE0Xi3jc=
 github.com/restsend/carrot v0.0.0-20231116063506-c9048e66be4d h1:rgHm7zOeEsbiJYhRPIp+AYCwXeUid/ys3jdhPu+LP+g=
 github.com/restsend/carrot v0.0.0-20231116063506-c9048e66be4d/go.mod h1:7Wb/WQc7Erx0tly+HSBVNt/k1PdyBZMNyMAuE0Xi3jc=
+github.com/restsend/carrot v0.0.0-20231116090312-4c5a5dc7e6d4 h1:ZoYuD6hxvsPbT+oF69p5csOdC131mZCl+x0zk4u+9IE=
+github.com/restsend/carrot v0.0.0-20231116090312-4c5a5dc7e6d4/go.mod h1:7Wb/WQc7Erx0tly+HSBVNt/k1PdyBZMNyMAuE0Xi3jc=
+github.com/restsend/carrot v0.0.0-20231116112321-70a6032913a5 h1:jyk68PQSrjHljjjGQB2Ct0FQtVI1JD1BCnWwOWKEJPM=
+github.com/restsend/carrot v0.0.0-20231116112321-70a6032913a5/go.mod h1:7Wb/WQc7Erx0tly+HSBVNt/k1PdyBZMNyMAuE0Xi3jc=
 github.com/sevlyar/go-daemon v0.1.6 h1:EUh1MDjEM4BI109Jign0EaknA2izkOyi0LV3ro3QQGs=
 github.com/sevlyar/go-daemon v0.1.6/go.mod h1:6dJpPatBT9eUwM5VCw9Bt6CdX9Tk6UWvhW3MebLDRKE=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
