@@ -26,4 +26,4 @@ ADD templates /app/templates
 ADD static /app/static
 
 EXPOSE 8000
-CMD ["/app/entrypoint.sh"]
+ENTRYPOINT ["/app/entrypoint.sh"]
