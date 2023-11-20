@@ -11,4 +11,4 @@ if [ -n "$LOGFILE" ]; then
 fi
 
 set -x 
-SESSION_SECRET=$SESSION_SECRET ./restcontent -addr $ADDR -dsn $DSN $LOG
+SESSION_SECRET=$SESSION_SECRET ./restcontent -addr $ADDR -dsn $DSN $LOG $@
