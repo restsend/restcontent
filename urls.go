@@ -68,7 +68,6 @@ func (m *Manager) RegisterHandlers(engine *gin.Engine) {
 			Orderables:   []string{},
 			Searchables:  []string{"UUID", "Name", "Items"},
 		},
-
 		{
 			Model:        &models.Page{},
 			AllowMethods: carrot.GET | carrot.QUERY,
@@ -90,6 +89,8 @@ func (m *Manager) RegisterHandlers(engine *gin.Engine) {
 		},
 	}
 	carrot.RegisterObjects(routes, objs)
+
+	routes.POST("/tags/:content_type", m.handleGetTags)
 }
 
 func (m *Manager) AuthRequired(c *gin.Context) {

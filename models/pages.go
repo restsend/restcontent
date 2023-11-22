@@ -12,9 +12,9 @@ import (
 
 type Page struct {
 	BaseContent
-	SiteID       string `json:"siteId" gorm:"uniqueIndex:,composite:_site_id"`
+	SiteID       string `json:"siteId" gorm:"primaryKey;uniqueIndex:,composite:_site_id"`
 	Site         Site   `json:"-"`
-	ID           string `json:"id" gorm:"size:100;uniqueIndex:,composite:_site_id"`
+	ID           string `json:"id" gorm:"primaryKey;size:100;uniqueIndex:,composite:_site_id"`
 	IsDraft      bool   `json:"isDraft"`
 	Draft        string `json:"-"`
 	Body         string `json:"body"`
@@ -25,9 +25,9 @@ type Page struct {
 
 type Post struct {
 	BaseContent
-	SiteID       string `json:"siteId" gorm:"uniqueIndex:,composite:_site_id"`
+	SiteID       string `json:"siteId" gorm:"primaryKey;uniqueIndex:,composite:_site_id"`
 	Site         Site   `json:"-"`
-	ID           string `json:"id" gorm:"size:100;uniqueIndex:,composite:_site_id"`
+	ID           string `json:"id" gorm:"primaryKey;size:100;uniqueIndex:,composite:_site_id"`
 	IsDraft      bool   `json:"isDraft"`
 	Draft        string `json:"-"`
 	Body         string `json:"body"`

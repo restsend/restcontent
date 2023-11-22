@@ -4,6 +4,7 @@ import (
 	"database/sql/driver"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"gorm.io/gorm"
 )
@@ -116,4 +117,61 @@ func NewRenderCategory(db *gorm.DB, categoryID, categoryPath string) *RenderCate
 		obj.PathName = selected.Name
 	}
 	return obj
+}
+
+// Query tags by category
+func GetTagsByCategory(db *gorm.DB, contentType string, form *TagsForm) ([]string, error) {
+	var tx *gorm.DB
+	switch contentType {
+	case "post":
+		tx = db.Model(&Post{})
+	case "page":
+		tx = db.Model(&Page{})
+	}
+
+	if form.SiteId != "" {
+		tx = tx.Where("site_id", form.SiteId)
+	}
+
+	if form.CategoryId != "" {
+		tx = tx.Where("category_id", form.CategoryId)
+	}
+
+	if form.CategoryPath != "" {
+		tx = tx.Where("category_path", form.CategoryPath)
+	}
+
+	var rawTags []string
+	r := tx.Pluck("tags", &rawTags)
+	if r.Error != nil {
+		return nil, r.Error
+	}
+
+	var uniqueTags map[string]string = make(map[string]string)
+	for _, tag := range rawTags {
+		if tag == "" {
+			continue
+		}
+		vals := strings.Split(tag, ",")
+		for _, val := range vals {
+			val = strings.TrimSpace(val)
+			if val == "" {
+				continue
+			}
+			uniqueTags[strings.ToLower(val)] = val
+		}
+	}
+
+	var tags []string = make([]string, 0, len(uniqueTags))
+	for k, v := range uniqueTags {
+		if k == "" {
+			continue
+		}
+		tags = append(tags, v)
+	}
+	return tags, r.Error
+}
+
+func QueryContentByTags(db *gorm.DB, contentType string, form *QueryByTagsForm) ([]string, error) {
+	return nil, nil
 }

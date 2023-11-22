@@ -59,6 +59,25 @@ type SummaryResult struct {
 	CanExport     bool             `json:"canExport"`
 }
 
+type TagsForm struct {
+	SiteId       string `json:"siteId"`
+	CategoryId   string `json:"categoryId"`
+	CategoryPath string `json:"categoryPath"`
+}
+
+type QueryByTagsForm struct {
+	Tags  []string `json:"tags" binding:"required"`
+	Limit int      `json:"limit"`
+	Pos   int      `json:"pos"`
+	TagsForm
+}
+type QueryByTagsResult struct {
+	Items []any `json:"items"`
+	Total int   `json:"total"`
+	Limit int   `json:"limit"`
+	Pos   int   `json:"pos"`
+}
+
 func GetSummary(db *gorm.DB) (result SummaryResult) {
 	db.Model(&Site{}).Count(&result.SiteCount)
 	db.Model(&Page{}).Count(&result.PageCount)
