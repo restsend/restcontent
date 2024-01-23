@@ -41,7 +41,7 @@ require (
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/pelletier/go-toml/v2 v2.1.0 // indirect
-	github.com/restsend/carrot v0.0.0-20231122082826-835cdff25e62
+	github.com/restsend/carrot v0.0.0-20240123074134-a94f388b078b
 	github.com/sevlyar/go-daemon v0.1.6
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.2.11 // indirect

@@ -43,7 +43,7 @@ type BaseContent struct {
 	Creator     carrot.User  `json:"-"`
 	Author      string       `json:"author" gorm:"size:64"`
 	Published   bool         `json:"published"`
-	PublishedAt sql.NullTime `json:"publishedAt"`
+	PublishedAt sql.NullTime `json:"publishedAt" gorm:"index"`
 	ContentType string       `json:"contentType" gorm:"size:32"`
 	Remark      string       `json:"remark"`
 }
